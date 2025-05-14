@@ -92,7 +92,8 @@ export async function analyzeAndSaveCode(formData: FormData) {
       return { error: "Failed to save analysis to history. " + dbError.message, data: analysisOutput };
     }
     
-    revalidatePath("/dashboard"); 
+    // Removed revalidatePath("/dashboard") to let client-side real-time handle updates for AnalysisHistory
+    // revalidatePath("/dashboard"); 
     return { error: null, data: analysisOutput };
 
   } catch (aiError: any) {
@@ -119,7 +120,7 @@ export async function deleteAnalysisHistoryItem(id: string) {
     return { error: "Failed to delete history item: " + error.message };
   }
 
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard"); // Keep for other potential server components or if history itself becomes server-rendered
   return { error: null };
 }
 
@@ -161,6 +162,7 @@ export async function updateAnalysisHistoryItem(id: string, formData: FormData) 
     return { error: "Failed to update history item: " + error.message };
   }
 
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard"); // Keep for other potential server components
   return { error: null };
 }
+
