@@ -165,7 +165,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
               <div className="flex items-center justify-between p-4 hover:bg-muted/50 rounded-t-lg">
                 <AccordionTrigger className="flex-1 p-0 hover:no-underline">
                   <div className="flex flex-col items-start text-left w-full">
-                    <h3 className="text-md font-semibold text-primary truncate max-w-[calc(100%-80px)]">
+                    <h3 className="text-md font-semibold text-primary">
                       {item.title || "Untitled Analysis"}
                     </h3>
                     <div className="flex items-center text-xs text-muted-foreground mt-1">
