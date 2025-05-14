@@ -71,7 +71,7 @@ export function Header() {
             <Link
               href="/dashboard"
               className={cn(
-                "text-sm font-medium transition-colors hover:text-foreground",
+                "text-base font-medium transition-colors hover:text-foreground", // Changed text-sm to text-base
                 pathname === "/dashboard"
                   ? "text-primary font-semibold"
                   : "text-foreground/70"
@@ -115,7 +115,7 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <Button asChild>
-              <Link href="/login">
+              <Link href="/login" className="text-base"> {/* Added text-base */}
                 <LogIn className="mr-2 h-4 w-4" /> Login
               </Link>
             </Button>
