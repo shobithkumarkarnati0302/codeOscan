@@ -78,13 +78,14 @@ export async function analyzeAndSaveCode(formData: FormData) {
       .from("analysis_history")
       .insert({
         user_id: user.id,
-        title: title || `Analysis for ${language}`, // Ensure title is not null if form submits empty
+        title: title || `Analysis for ${language}`, 
         language: language,
         code_snippet: code,
         time_complexity: analysisOutput.timeComplexity,
         space_complexity: analysisOutput.spaceComplexity,
         explanation: analysisOutput.explanation,
-        improvement_suggestions: analysisOutput.improvementSuggestions, // Save suggestions
+        improvement_suggestions: analysisOutput.improvementSuggestions,
+        is_favorite: false, // Default to false on new insert
       });
 
     if (dbError) {
@@ -92,7 +93,6 @@ export async function analyzeAndSaveCode(formData: FormData) {
       return { error: "Failed to save analysis to history. " + dbError.message, data: analysisOutput };
     }
     
-    // Removed revalidatePath("/dashboard") to let client-side real-time handle updates for AnalysisHistory
     return { error: null, data: analysisOutput };
 
   } catch (aiError: any) {
@@ -119,7 +119,6 @@ export async function deleteAnalysisHistoryItem(id: string) {
     return { error: "Failed to delete history item: " + error.message };
   }
 
-  // revalidatePath("/dashboard"); // Removed to let client-side handle updates
   return { error: null };
 }
 
@@ -143,9 +142,6 @@ export async function updateAnalysisHistoryItem(id: string, formData: FormData) 
     title: title || `Analysis for ${language}`,
     language: language,
     code_snippet: code,
-    // Note: improvement_suggestions, time_complexity, space_complexity, explanation are not re-analyzed here.
-    // If re-analysis upon edit is desired, this function would need to call analyzeCodeComplexity again
-    // and include those fields in the updateData object.
   };
 
   const { error } = await supabase
@@ -158,8 +154,27 @@ export async function updateAnalysisHistoryItem(id: string, formData: FormData) 
     return { error: "Failed to update history item: " + error.message };
   }
 
-  // revalidatePath("/dashboard"); // Removed to let client-side handle updates
   return { error: null };
 }
 
+export async function toggleFavoriteStatus(id: string, currentStatus: boolean) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "User not authenticated." };
+  }
+
+  const { error } = await supabase
+    .from("analysis_history")
+    .update({ is_favorite: !currentStatus })
+    .match({ id: id, user_id: user.id });
+
+  if (error) {
+    console.error("Database error updating favorite status:", error);
+    return { error: "Failed to update favorite status: " + error.message };
+  }
+
+  return { error: null };
+}
     
