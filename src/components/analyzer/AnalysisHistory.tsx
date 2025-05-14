@@ -59,7 +59,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(20); // Increased limit slightly
+        .limit(20); 
 
       if (dbError) {
         setError(dbError.message);
@@ -73,24 +73,61 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
 
     fetchHistory();
 
-    // Listen for real-time changes (inserts, updates, deletes)
     const channel = supabase
       .channel(`analysis_history_changes_for_${userId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'analysis_history', filter: `user_id=eq.${userId}` },
         (payload) => {
-          // Refetch history on any change
-          // console.log('Change received!', payload)
-          fetchHistory(); 
+          // console.log('Supabase real-time event received:', payload);
+          switch (payload.eventType) {
+            case 'INSERT':
+              const newItem = payload.new as AnalysisHistoryItem;
+              setHistory(prevHistory => {
+                const updatedHistory = [newItem, ...prevHistory.filter(item => item.id !== newItem.id)];
+                updatedHistory.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                return updatedHistory.slice(0, 20);
+              });
+              break;
+            case 'UPDATE':
+              const updatedItem = payload.new as AnalysisHistoryItem;
+              setHistory(prevHistory => {
+                const newHistory = prevHistory.map(item => item.id === updatedItem.id ? updatedItem : item);
+                newHistory.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                // If an update might affect the total count or order significantly, you might still want to limit.
+                // For now, assuming updates don't drastically change the list order beyond sort.
+                return newHistory; 
+              });
+              break;
+            case 'DELETE':
+              // This handles deletes from other clients/sources.
+              // Deletes from this client are already handled optimistically by the delete button's action.
+              // However, we include this to ensure consistency if the optimistic update was missed or for external deletes.
+              const oldItemId = (payload.old as Partial<AnalysisHistoryItem>).id;
+              if (oldItemId) {
+                // Check if item is still in history (it might have been optimistically removed)
+                setHistory(prevHistory => prevHistory.find(item => item.id === oldItemId) ? prevHistory.filter(item => item.id !== oldItemId) : prevHistory);
+              } else {
+                fetchHistory(); // Fallback if ID is missing
+              }
+              break;
+            default:
+              // For other cases or if payload structure is unexpected, just refetch
+              fetchHistory();
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        // console.log(`Supabase channel[analysis_history_changes_for_${userId}] status:`, status);
+        // if (status === 'CHANNEL_ERROR') {
+        //   console.error('Supabase channel error details:', status);
+        // }
+      });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, supabase]);
+  }, [userId, supabase]); // supabase is stable
 
   const handleDeleteRequest = (item: AnalysisHistoryItem) => {
     setItemToDelete(item);
@@ -127,7 +164,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
   };
 
 
-  if (isLoading && history.length === 0) { // Show loader only on initial load
+  if (isLoading && history.length === 0) { 
     return (
       <div className="flex items-center justify-center p-6">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -208,7 +245,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
               </AccordionContent>
             </AccordionItem>
           ))}
-        </Accordion>
+        </Accordion
       </ScrollArea>
 
       {/* Delete Confirmation Dialog */}
