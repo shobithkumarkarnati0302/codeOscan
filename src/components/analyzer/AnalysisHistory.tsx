@@ -62,6 +62,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
         .limit(20); 
 
       if (dbError) {
+        console.error("Error fetching initial history:", dbError);
         setError(dbError.message);
         setHistory([]);
       } else {
@@ -79,30 +80,39 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'analysis_history', filter: `user_id=eq.${userId}` },
         (payload) => {
-          // console.log('Supabase real-time event received:', payload);
+          console.log('Supabase real-time event received:', payload.eventType, payload);
           switch (payload.eventType) {
             case 'INSERT':
               const newItem = payload.new as AnalysisHistoryItem;
+              console.log('Real-time INSERT received, new item:', newItem);
               setHistory(prevHistory => {
-                const updatedHistory = [newItem, ...prevHistory.filter(item => item.id !== newItem.id)];
+                // Avoid duplicates if event somehow fires multiple times for same item
+                if (prevHistory.some(item => item.id === newItem.id)) {
+                  console.log('New item ID already exists in history, not adding duplicate:', newItem.id);
+                  return prevHistory;
+                }
+                const updatedHistory = [newItem, ...prevHistory];
                 updatedHistory.sort((a, b) => {
-                  const timeA = new Date(a.created_at).getTime();
-                  const timeB = new Date(b.created_at).getTime();
+                  const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+                  const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
                   if (isNaN(timeA) && isNaN(timeB)) return 0;
-                  if (isNaN(timeA)) return 1; // Push items with invalid dates to the end
+                  if (isNaN(timeA)) return 1; 
                   if (isNaN(timeB)) return -1;
-                  return timeB - timeA; // Sort newest first
+                  return timeB - timeA; 
                 });
-                return updatedHistory.slice(0, 20);
+                const finalHistory = updatedHistory.slice(0, 20);
+                console.log('History state updated with new item. New history length:', finalHistory.length);
+                return finalHistory;
               });
               break;
             case 'UPDATE':
               const updatedItem = payload.new as AnalysisHistoryItem;
+              console.log('Real-time UPDATE received, updated item:', updatedItem);
               setHistory(prevHistory => {
                 const newHistory = prevHistory.map(item => item.id === updatedItem.id ? updatedItem : item);
                 newHistory.sort((a,b) => {
-                  const timeA = new Date(a.created_at).getTime();
-                  const timeB = new Date(b.created_at).getTime();
+                  const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+                  const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
                   if (isNaN(timeA) && isNaN(timeB)) return 0;
                   if (isNaN(timeA)) return 1;
                   if (isNaN(timeB)) return -1;
@@ -113,30 +123,39 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
               break;
             case 'DELETE':
               const oldItemId = (payload.old as Partial<AnalysisHistoryItem>).id;
+              console.log('Real-time DELETE received, old item ID:', oldItemId);
               if (oldItemId) {
                 setHistory(prevHistory => prevHistory.filter(item => item.id !== oldItemId));
               } else {
-                // Fallback if old.id is not available, though it usually should be.
+                console.warn('Real-time DELETE event did not contain old item ID, refetching history.');
                 fetchHistory(); 
               }
               break;
             default:
-              // For other events or if unsure, refetch to be safe.
+              console.log('Unhandled real-time event type or fallback, refetching history:', payload.eventType);
               fetchHistory();
           }
         }
       )
-      .subscribe((status) => {
-        // console.log(`Supabase channel[analysis_history_changes_for_${userId}] status:`, status);
-        // if (status === 'CHANNEL_ERROR') {
-        //   console.error('Supabase channel error details:', status);
-        // }
+      .subscribe((status, error) => {
+        console.log(`Supabase channel [analysis_history_changes_for_${userId}] subscription status: ${status}`);
+        if (error) {
+          console.error(`Supabase channel subscription error for user ${userId}:`, error);
+          setError(`Failed to subscribe to real-time updates: ${error.message}. Try refreshing.`);
+        }
+        if (status === 'SUBSCRIBED') {
+          console.log(`Successfully subscribed to real-time analysis history for user ${userId}.`);
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+           console.error(`Supabase channel status issue: ${status} for user ${userId}.`);
+           setError(`Real-time connection issue: ${status}. History may not update automatically. Try refreshing.`);
+        }
       });
 
     return () => {
+      console.log(`Unsubscribing from Supabase channel for user ${userId}.`);
       supabase.removeChannel(channel);
     };
-  }, [userId, supabase]); // supabase is stable
+  }, [userId, supabase]); // supabase instance should be stable
 
   const handleDeleteRequest = (item: AnalysisHistoryItem) => {
     setItemToDelete(item);
@@ -161,7 +180,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
         title: "Deletion Successful",
         description: "The analysis history item has been deleted.",
       });
-      // Optimistically update UI
+      // Optimistically update UI immediately
       setHistory(prev => prev.filter(h => h.id !== itemToDelete!.id)); 
     }
     setItemToDelete(null);
@@ -182,15 +201,25 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
     );
   }
 
-  if (error) {
+  if (error && history.length === 0) { // Only show full error if no history is loaded
     return (
       <div className="text-destructive-foreground bg-destructive p-4 rounded-md flex items-center">
         <AlertCircle className="mr-2 h-5 w-5" /> Error fetching history: {error}
       </div>
     );
   }
+  
+  if (!isLoading && error && history.length > 0) { // Show a less intrusive error if history is already displayed
+     toast({
+        title: "Real-time Update Issue",
+        description: error,
+        variant: "destructive",
+        duration: 10000, 
+      });
+  }
 
-  if (!history || history.length === 0) {
+
+  if (!isLoading && history.length === 0 && !error) { // Ensure error is not present for "No history" message
     return (
       <div className="text-center text-muted-foreground p-6 border border-dashed rounded-md">
         <History className="mx-auto h-12 w-12 mb-4" />
@@ -205,6 +234,12 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
   return (
     <>
       <ScrollArea className="h-[600px] pr-4">
+        {history.length === 0 && isLoading && ( // Show loader inside scroll area if initial load is slow but not an error
+            <div className="flex items-center justify-center p-6">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="ml-2 text-muted-foreground">Loading history...</p>
+            </div>
+        )}
         <Accordion type="single" collapsible className="w-full space-y-3">
           {history.map((item) => (
             <AccordionItem value={item.id} key={item.id} className="border bg-card rounded-lg shadow-sm group">
@@ -220,7 +255,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
                     <div className="flex items-center text-xs text-muted-foreground mt-1">
                       <Badge variant="outline" className="mr-2">{item.language}</Badge>
                       <Clock className="mr-1 h-3 w-3" />
-                      {new Date(item.created_at).toLocaleDateString()}
+                      {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Date N/A'}
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -289,3 +324,6 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
     </>
   );
 }
+
+
+    
