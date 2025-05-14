@@ -26,9 +26,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { analyzeAndSaveCode } from "@/app/actions";
+import { validateCodeLanguage, type ValidateCodeLanguageInput, type ValidateCodeLanguageOutput } from "@/ai/flows/validate-code-language";
 import { PROGRAMMING_LANGUAGES, EXPLANATION_LEVELS } from "@/lib/constants";
 import type { AnalyzeCodeComplexityOutput } from "@/ai/flows/analyze-code-complexity";
-import { Loader2, Wand2 } from "lucide-react";
+import { Loader2, Wand2, ShieldAlert } from "lucide-react";
 
 const formSchema = z.object({
   title: z.string().max(100, "Title can be at most 100 characters.").optional(),
@@ -58,6 +59,7 @@ export function CodeAnalyzerForm({
 }: CodeAnalyzerFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isValidatingLanguage, setIsValidatingLanguage] = useState(false);
 
   const form = useForm<CodeAnalyzerFormValues>({
     resolver: zodResolver(formSchema),
@@ -70,13 +72,53 @@ export function CodeAnalyzerForm({
   });
 
   async function onSubmit(values: CodeAnalyzerFormValues) {
-    setIsLoading(true);
-    onAnalysisStart({
+    setIsValidatingLanguage(true);
+    onAnalysisStart({ // Indicate general loading process has started
       title: values.title,
       language: values.language,
       explanationLevel: values.explanationLevel,
       code: values.code,
     });
+    
+    try {
+      const languageValidationInput: ValidateCodeLanguageInput = {
+        expectedLanguage: values.language,
+        code: values.code,
+      };
+      const languageValidationResult: ValidateCodeLanguageOutput = await validateCodeLanguage(languageValidationInput);
+
+      if (!languageValidationResult.isValid) {
+        toast({
+          title: "Language Mismatch",
+          description: `${languageValidationResult.reasoning} (AI suggests this might be ${languageValidationResult.detectedLanguage || 'an unexpected language'}). Please select the correct language or revise your code.`,
+          variant: "destructive",
+          duration: 7000,
+        });
+        onAnalysisComplete(null); // Clear any previous analysis result and stop loading spinner
+        setIsValidatingLanguage(false);
+        setIsLoading(false); // Also set main loading to false
+        return;
+      }
+      toast({
+          title: "Language Validated",
+          description: `AI confirmed the code appears to be ${values.language}. Proceeding with complexity analysis.`,
+          duration: 3000,
+      });
+
+    } catch (langError: any) {
+      toast({
+        title: "Language Validation Error",
+        description: langError.message || "Could not validate code language. Proceeding with analysis, but results might be affected.",
+        variant: "destructive",
+      });
+      // Optionally, you might decide to stop here or proceed with caution
+      // For now, we'll log and let it proceed to complexity analysis if user wants
+    } finally {
+      setIsValidatingLanguage(false);
+    }
+
+    setIsLoading(true); // Ensure isLoading is true for complexity analysis part
+    // onAnalysisStart was already called
 
     const formData = new FormData();
     formData.append("title", values.title || `Analysis for ${values.language}`);
@@ -116,6 +158,8 @@ export function CodeAnalyzerForm({
     }
   }
 
+  const totalLoading = isLoading || isValidatingLanguage;
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -129,7 +173,7 @@ export function CodeAnalyzerForm({
                 <Input
                   placeholder="e.g., My Sorting Algorithm"
                   {...field}
-                  disabled={isLoading}
+                  disabled={totalLoading}
                 />
               </FormControl>
               <FormDescription>
@@ -150,7 +194,7 @@ export function CodeAnalyzerForm({
                 <Select
                   onValueChange={field.onChange}
                   value={field.value}
-                  disabled={isLoading}
+                  disabled={totalLoading}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -178,7 +222,7 @@ export function CodeAnalyzerForm({
                 <Select
                   onValueChange={field.onChange}
                   value={field.value}
-                  disabled={isLoading}
+                  disabled={totalLoading}
                   defaultValue="Intermediate"
                 >
                   <FormControl>
@@ -211,7 +255,7 @@ export function CodeAnalyzerForm({
                   placeholder="Enter your code here..."
                   className="min-h-[200px] font-mono text-sm"
                   {...field}
-                  disabled={isLoading}
+                  disabled={totalLoading}
                 />
               </FormControl>
               <FormDescription>
@@ -222,13 +266,15 @@ export function CodeAnalyzerForm({
           )}
         />
 
-        <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
-          {isLoading ? (
+        <Button type="submit" className="w-full sm:w-auto" disabled={totalLoading}>
+          {isValidatingLanguage ? (
+            <ShieldAlert className="mr-2 h-4 w-4 animate-pulse" />
+          ) : isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <Wand2 className="mr-2 h-4 w-4" />
           )}
-          Analyze Complexity
+          {isValidatingLanguage ? "Validating Language..." : "Analyze Complexity"}
         </Button>
       </form>
     </Form>
