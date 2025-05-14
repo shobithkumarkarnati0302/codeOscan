@@ -3,7 +3,7 @@ import type { AnalyzeCodeComplexityOutput } from "@/ai/flows/analyze-code-comple
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Lightbulb, Clock, DatabaseZap, Info, Sparkles } from "lucide-react"; // Using DatabaseZap for space, Sparkles for suggestions
+import { Lightbulb, Clock, DatabaseZap, Info, Sparkles, StickyNote } from "lucide-react"; 
 
 interface AnalysisResultCardProps {
   result: AnalyzeCodeComplexityOutput;
@@ -11,6 +11,7 @@ interface AnalysisResultCardProps {
   language?: string;
   codeSnippet?: string;
   createdAt?: string;
+  userNotes?: string | null; // Added to display user notes
 }
 
 export function AnalysisResultCard({
@@ -19,6 +20,7 @@ export function AnalysisResultCard({
   language,
   codeSnippet,
   createdAt,
+  userNotes,
 }: AnalysisResultCardProps) {
   return (
     <Card className="shadow-md">
@@ -34,7 +36,7 @@ export function AnalysisResultCard({
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-6"> {/* Increased spacing */}
+      <CardContent className="space-y-6">
         {codeSnippet && (
           <>
             <div>
@@ -87,6 +89,25 @@ export function AnalysisResultCard({
               </h4>
               <div className="pl-2">
                 <p className="text-sm text-foreground/90 whitespace-pre-line">{result.improvementSuggestions}</p>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Display User Notes - editing handled by AnalysisHistory component */}
+        {userNotes !== undefined && userNotes !== null && ( // Check for undefined as well for initial load
+          <>
+            <Separator />
+            <div className="space-y-3">
+              <h4 className="font-semibold text-lg mb-2 flex items-center">
+                <StickyNote className="mr-2 h-5 w-5 text-primary" /> User Notes
+              </h4>
+              <div className="pl-2">
+                {userNotes ? (
+                  <p className="text-sm text-foreground/90 whitespace-pre-line">{userNotes}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No notes added yet.</p>
+                )}
               </div>
             </div>
           </>

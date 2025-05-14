@@ -85,7 +85,8 @@ export async function analyzeAndSaveCode(formData: FormData) {
         space_complexity: analysisOutput.spaceComplexity,
         explanation: analysisOutput.explanation,
         improvement_suggestions: analysisOutput.improvementSuggestions,
-        is_favorite: false, // Default to false on new insert
+        is_favorite: false, 
+        user_notes: "", // Initialize user_notes
       });
 
     if (dbError) {
@@ -176,5 +177,49 @@ export async function toggleFavoriteStatus(id: string, currentStatus: boolean) {
   }
 
   return { error: null };
+}
+
+export async function updateUserNotes(analysisId: string, notes: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "User not authenticated." };
+  }
+
+  const { error } = await supabase
+    .from("analysis_history")
+    .update({ user_notes: notes })
+    .match({ id: analysisId, user_id: user.id });
+
+  if (error) {
+    console.error("Database error updating notes:", error);
+    return { error: "Failed to update notes: " + error.message };
+  }
+  // Optionally revalidate if immediate reflection on other components is needed,
+  // though AnalysisHistory typically relies on real-time for updates.
+  // revalidatePath("/dashboard"); 
+  return { error: null };
+}
+
+export async function getAnalysisByIdForSharing(analysisId: string): Promise<{ data: Database["public"]["Tables"]["analysis_history"]["Row"] | null; error: string | null }> {
+  const supabase = createClient();
+  // Note: This fetch does not explicitly check user authentication.
+  // For this to work for unauthenticated users (truly public link),
+  // your RLS policies for `analysis_history` must allow `anon` role to SELECT.
+  // This might involve an `is_public` flag on the table.
+  // If RLS restricts to authenticated users, only logged-in users can view shared links.
+  const { data, error } = await supabase
+    .from("analysis_history")
+    .select("*")
+    .eq("id", analysisId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching analysis by ID for sharing:", error);
+    return { data: null, error: "Failed to fetch analysis: " + error.message };
+  }
+
+  return { data, error: null };
 }
     

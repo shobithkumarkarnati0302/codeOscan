@@ -7,7 +7,7 @@ import type { Database } from "@/lib/database.types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, History, Clock, Edit3, Trash2, Loader2, Star, Filter } from "lucide-react";
+import { AlertCircle, History, Clock, Edit3, Trash2, Loader2, Star, Filter, Share2, Copy, Save, StickyNote } from "lucide-react";
 import { AnalysisResultCard } from "./AnalysisResultCard";
 import {
   Accordion,
@@ -26,12 +26,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { deleteAnalysisHistoryItem, toggleFavoriteStatus } from "@/app/actions";
+import { deleteAnalysisHistoryItem, toggleFavoriteStatus, updateUserNotes } from "@/app/actions";
 import { EditAnalysisFormDialog } from "./EditAnalysisFormDialog"; 
 import { PROGRAMMING_LANGUAGES } from "@/lib/constants";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 
 
 type AnalysisHistoryItem = Database["public"]["Tables"]["analysis_history"]["Row"];
@@ -55,7 +63,12 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
   const [itemToEdit, setItemToEdit] = useState<AnalysisHistoryItem | null>(null);
   
   const [togglingFavoriteId, setTogglingFavoriteId] = useState<string | null>(null);
-  const [selectedLanguage, setSelectedLanguage] = useState<string>(""); // Empty string means show placeholder / all languages
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(ALL_LANGUAGES_FILTER_VALUE);
+
+
+  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
+  const [currentNotesText, setCurrentNotesText] = useState("");
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
 
 
   const { toast } = useToast();
@@ -117,7 +130,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
               break;
             case 'UPDATE':
               const updatedItem = payload.new as AnalysisHistoryItem;
-              console.log('Real-time UPDATE received, updated item (title, id, is_favorite):', { title: updatedItem.title, id: updatedItem.id, is_favorite: updatedItem.is_favorite });
+              console.log('Real-time UPDATE received, updated item (title, id, is_favorite, user_notes):', { title: updatedItem.title, id: updatedItem.id, is_favorite: updatedItem.is_favorite, user_notes: updatedItem.user_notes });
               setHistory(prevHistory => {
                 const newHistory = prevHistory.map(item => item.id === updatedItem.id ? updatedItem : item);
                 newHistory.sort((a,b) => {
@@ -216,7 +229,6 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
         title: "Favorite Updated",
         description: `Item ${item.is_favorite ? "unmarked" : "marked"} as favorite.`,
       });
-      // UI update will be handled by real-time subscription
     }
   };
   
@@ -227,6 +239,40 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
     });
   }, [history, selectedLanguage]);
 
+  const handleEditNotes = (item: AnalysisHistoryItem) => {
+    setEditingNotesId(item.id);
+    setCurrentNotesText(item.user_notes || "");
+  };
+
+  const handleSaveNotes = async (itemId: string) => {
+    setIsSavingNotes(true);
+    const result = await updateUserNotes(itemId, currentNotesText);
+    setIsSavingNotes(false);
+    if (result.error) {
+      toast({
+        title: "Error Saving Notes",
+        description: result.error,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Notes Saved",
+        description: "Your notes have been updated.",
+      });
+      setEditingNotesId(null);
+      // History will update via real-time subscription
+    }
+  };
+
+  const handleCopyLink = (analysisId: string) => {
+    const link = `${window.location.origin}/share/${analysisId}`;
+    navigator.clipboard.writeText(link).then(() => {
+      toast({ title: "Link Copied!", description: "Shareable link copied to clipboard." });
+    }).catch(err => {
+      toast({ title: "Copy Failed", description: "Could not copy link.", variant: "destructive" });
+      console.error('Failed to copy link: ', err);
+    });
+  };
 
   if (isLoading && history.length === 0) { 
     return (
@@ -253,7 +299,6 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
         duration: 10000, 
       });
   }
-
 
   if (!isLoading && history.length === 0 && !error) { 
     return (
@@ -329,6 +374,25 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
                   </div>
                 </AccordionTrigger>
                 <div className="flex items-center space-x-1 ml-2">
+                   <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Share analysis">
+                        <Share2 className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-2">
+                      <div className="flex items-center space-x-2">
+                        <Input 
+                          readOnly 
+                          value={`${typeof window !== 'undefined' ? window.location.origin : ''}/share/${item.id}`} 
+                          className="h-8 text-xs"
+                        />
+                        <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => handleCopyLink(item.id)}>
+                          <Copy className="h-3 w-3 mr-1" /> Copy
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                    <Button
                     variant="ghost"
                     size="icon"
@@ -375,14 +439,65 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
                   title={item.title || undefined}
                   language={item.language}
                   createdAt={item.created_at}
+                  userNotes={item.user_notes} // Pass user notes for display
                 />
+                <Separator className="my-4" />
+                <div className="space-y-2">
+                  <h5 className="font-semibold text-md flex items-center">
+                    <StickyNote className="mr-2 h-5 w-5 text-primary" /> User Notes
+                  </h5>
+                  {editingNotesId === item.id ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={currentNotesText}
+                        onChange={(e) => setCurrentNotesText(e.target.value)}
+                        placeholder="Add your personal notes here..."
+                        className="min-h-[100px]"
+                        disabled={isSavingNotes}
+                      />
+                      <div className="flex justify-end space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setEditingNotesId(null)}
+                          disabled={isSavingNotes}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleSaveNotes(item.id)}
+                          disabled={isSavingNotes}
+                        >
+                          {isSavingNotes ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                          Save Notes
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      {item.user_notes ? (
+                        <p className="text-sm text-foreground/90 whitespace-pre-line">{item.user_notes}</p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">No notes added yet.</p>
+                      )}
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2"
+                        onClick={() => handleEditNotes(item)}
+                      >
+                        <Edit3 className="mr-2 h-4 w-4" /> Edit Notes
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
       </ScrollArea>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -402,7 +517,6 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Edit Dialog */}
       <EditAnalysisFormDialog 
         isOpen={showEditDialog}
         onOpenChange={setShowEditDialog}
