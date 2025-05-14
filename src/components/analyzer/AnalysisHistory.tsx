@@ -1,13 +1,13 @@
 
 "use client"; 
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client"; 
 import type { Database } from "@/lib/database.types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, History, Clock, Edit3, Trash2, Loader2, Star, Filter, Share2, Copy, Save, StickyNote } from "lucide-react";
+import { AlertCircle, History, Clock, Edit3, Trash2, Loader2, Star, Filter, Share2, Copy, Save, StickyNote, RefreshCw } from "lucide-react";
 import { AnalysisResultCard } from "./AnalysisResultCard";
 import {
   Accordion,
@@ -74,27 +74,30 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
   const { toast } = useToast();
   const supabase = createClient();
 
-  useEffect(() => {
-    async function fetchHistory() {
-      setIsLoading(true);
-      const { data, error: dbError } = await supabase
-        .from("analysis_history")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(50); 
+  const fetchHistory = useCallback(async () => {
+    setIsLoading(true);
+    console.log(`Fetching history for user ${userId}...`);
+    const { data, error: dbError } = await supabase
+      .from("analysis_history")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(50); 
 
-      if (dbError) {
-        console.error("Error fetching initial history:", dbError);
-        setError(dbError.message);
-        setHistory([]);
-      } else {
-        setHistory(data || []);
-        setError(null);
-      }
-      setIsLoading(false);
+    if (dbError) {
+      console.error("Error fetching initial history:", dbError);
+      setError(dbError.message);
+      setHistory([]);
+    } else {
+      console.log('History fetched successfully:', data ? data.length : 0, 'items');
+      setHistory(data || []);
+      setError(null);
     }
+    setIsLoading(false);
+  }, [supabase, userId]);
 
+
+  useEffect(() => {
     fetchHistory();
 
     const channel = supabase
@@ -178,7 +181,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
       console.log(`Unsubscribing from Supabase channel for user ${userId}.`);
       supabase.removeChannel(channel);
     };
-  }, [userId, supabase]); 
+  }, [userId, supabase, fetchHistory]); 
 
   const handleDeleteRequest = (item: AnalysisHistoryItem) => {
     setItemToDelete(item);
@@ -274,6 +277,14 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
     });
   };
 
+  const handleRefreshHistory = () => {
+    fetchHistory();
+     toast({
+      title: "History Refreshing",
+      description: "Fetching the latest analysis history.",
+    });
+  };
+
   if (isLoading && history.length === 0) { 
     return (
       <div className="flex items-center justify-center p-6">
@@ -315,26 +326,38 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
   return (
     <>
       <div className="mb-6 p-4 border bg-card rounded-lg shadow-sm">
-        <div className="flex flex-col sm:flex-row gap-4 items-center">
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div className="flex items-center gap-2">
                 <Filter className="h-5 w-5 text-primary" />
                 <h3 className="text-lg font-semibold">Filter History</h3>
             </div>
-            <div className="w-full sm:w-auto sm:min-w-[200px]">
-                <Label htmlFor="language-filter" className="sr-only">Filter by Language</Label>
-                <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                <SelectTrigger id="language-filter" className="w-full">
-                    <SelectValue placeholder="All Languages" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value={ALL_LANGUAGES_FILTER_VALUE}>All Languages</SelectItem>
-                    {PROGRAMMING_LANGUAGES.map((lang) => (
-                    <SelectItem key={lang.value} value={lang.value}>
-                        {lang.label}
-                    </SelectItem>
-                    ))}
-                </SelectContent>
-                </Select>
+            <div className="flex gap-2 items-center w-full sm:w-auto">
+              <div className="flex-grow sm:min-w-[200px]">
+                  <Label htmlFor="language-filter" className="sr-only">Filter by Language</Label>
+                  <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                  <SelectTrigger id="language-filter" className="w-full">
+                      <SelectValue placeholder="All Languages" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value={ALL_LANGUAGES_FILTER_VALUE}>All Languages</SelectItem>
+                      {PROGRAMMING_LANGUAGES.map((lang) => (
+                      <SelectItem key={lang.value} value={lang.value}>
+                          {lang.label}
+                      </SelectItem>
+                      ))}
+                  </SelectContent>
+                  </Select>
+              </div>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleRefreshHistory} 
+                disabled={isLoading}
+                aria-label="Refresh history"
+                className="shrink-0"
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              </Button>
             </div>
         </div>
       </div>
