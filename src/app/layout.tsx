@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Code Complexity Analyzer",
-  description: "Analyze time and space complexity of your code using AI.",
+  title: "CodeOscan - AI Code Analysis",
+  description: "AI-powered code analysis and insights with CodeOscan.",
 };
 
 export default function RootLayout({

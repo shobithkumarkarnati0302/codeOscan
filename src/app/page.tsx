@@ -19,21 +19,20 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4 text-center bg-gradient-to-br from-background to-secondary/30">
       <div className="mb-8">
-        <Logo width="200" height="50" />
+        <Logo width="220" height="50" /> {/* Adjusted size to better fit new logo aspect ratio */}
       </div>
       <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-6">
-        Analyze Code Complexity with AI
+        Unlock Code Insights with CodeOscan
       </h1>
       <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10">
-        Understand the efficiency of your algorithms. Get instant time and space
-        complexity analysis for your code snippets.
+        CodeOscan delivers AI-powered analysis for your code, helping you understand its structure, complexity, and potential improvements.
       </p>
       <div className="grid md:grid-cols-3 gap-6 max-w-4xl mb-12 text-left">
         <div className="p-6 bg-card rounded-lg shadow-md">
           <CheckCircle className="h-6 w-6 text-primary mb-2" />
           <h3 className="text-lg font-semibold mb-1">Instant Analysis</h3>
           <p className="text-sm text-muted-foreground">
-            Paste your code and get complexity insights in seconds.
+            Paste your code and get insights in seconds.
           </p>
         </div>
         <div className="p-6 bg-card rounded-lg shadow-md">
