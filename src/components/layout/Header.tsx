@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogIn, LogOut, User as UserIcon } from "lucide-react"; // Added UserIcon
+import { LogIn, LogOut, User as UserIcon, LayoutDashboard } from "lucide-react"; // Added LayoutDashboard
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/icons/Logo";
 import { createClient } from "@/lib/supabase/client";
@@ -63,30 +63,16 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-18 items-center justify-between">
-        {/* Left Section: Logo + Dashboard */}
+        {/* Left Section: Logo */}
         <div className="flex items-center space-x-6 ml-4">
           <Link href="/" className="flex items-center space-x-2">
             <Logo />
           </Link>
-
-          {user && (
-            <Link
-              href="/dashboard"
-              className={cn(
-                "text-lg font-medium transition-colors hover:text-foreground",
-                pathname === "/dashboard"
-                  ? "text-primary font-semibold"
-                  : "text-foreground/70"
-              )}
-            >
-              Dashboard
-            </Link>
-          )}
         </div>
 
         {/* Right Section: Toggle + Avatar/Login */}
         <div className="flex items-center space-x-4 mr-4">
-          <ThemeToggleButton /> {/* Removed className, will take default size */}
+          <ThemeToggleButton />
 
           {!loading && user ? (
             <DropdownMenu>
@@ -94,14 +80,14 @@ export function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="group h-12 w-12 rounded-full" // Increased button size for larger avatar
+                  className="group h-10 w-10 rounded-full" 
                 >
-                  <Avatar className="h-10 w-10"> {/* Increased Avatar size */}
+                  <Avatar className="h-9 w-9"> 
                     <AvatarImage
                       src={user.user_metadata?.avatar_url}
                       alt={userEmail || "User"}
                     />
-                    <AvatarFallback className="text-xl group-hover:text-primary"> {/* Increased fallback text size */}
+                    <AvatarFallback className="text-lg group-hover:text-primary"> 
                       {emailInitial}
                     </AvatarFallback>
                   </Avatar>
@@ -122,6 +108,10 @@ export function Header() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  <span>Dashboard</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push('/profile')}>
                   <UserIcon className="mr-2 h-4 w-4" />
                   <span>Profile</span>
