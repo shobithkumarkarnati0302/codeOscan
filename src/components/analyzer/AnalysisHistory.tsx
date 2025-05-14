@@ -84,35 +84,35 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
           switch (payload.eventType) {
             case 'INSERT':
               const newItem = payload.new as AnalysisHistoryItem;
-              console.log('Real-time INSERT received, new item:', newItem);
+              console.log('Real-time INSERT received, new item (title, id):', { title: newItem.title, id: newItem.id, created_at: newItem.created_at });
               setHistory(prevHistory => {
-                // Avoid duplicates if event somehow fires multiple times for same item
+                console.log('Previous history length before INSERT:', prevHistory.length);
                 if (prevHistory.some(item => item.id === newItem.id)) {
                   console.log('New item ID already exists in history, not adding duplicate:', newItem.id);
                   return prevHistory;
                 }
                 const updatedHistory = [newItem, ...prevHistory];
                 updatedHistory.sort((a, b) => {
-                  const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
-                  const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+                  const timeA = a.created_at ? new Date(a.created_at).getTime() : NaN;
+                  const timeB = b.created_at ? new Date(b.created_at).getTime() : NaN;
                   if (isNaN(timeA) && isNaN(timeB)) return 0;
                   if (isNaN(timeA)) return 1; 
                   if (isNaN(timeB)) return -1;
                   return timeB - timeA; 
                 });
                 const finalHistory = updatedHistory.slice(0, 20);
-                console.log('History state updated with new item. New history length:', finalHistory.length);
+                console.log('History state updated with new item. New history length:', finalHistory.length, 'First item:', finalHistory[0]?.title);
                 return finalHistory;
               });
               break;
             case 'UPDATE':
               const updatedItem = payload.new as AnalysisHistoryItem;
-              console.log('Real-time UPDATE received, updated item:', updatedItem);
+              console.log('Real-time UPDATE received, updated item (title, id):', { title: updatedItem.title, id: updatedItem.id });
               setHistory(prevHistory => {
                 const newHistory = prevHistory.map(item => item.id === updatedItem.id ? updatedItem : item);
                 newHistory.sort((a,b) => {
-                  const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
-                  const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+                  const timeA = a.created_at ? new Date(a.created_at).getTime() : NaN;
+                  const timeB = b.created_at ? new Date(b.created_at).getTime() : NaN;
                   if (isNaN(timeA) && isNaN(timeB)) return 0;
                   if (isNaN(timeA)) return 1;
                   if (isNaN(timeB)) return -1;
@@ -286,6 +286,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
                     timeComplexity: item.time_complexity || "N/A",
                     spaceComplexity: item.space_complexity || "N/A",
                     explanation: item.explanation || "No explanation provided.",
+                    improvementSuggestions: item.improvement_suggestions || undefined,
                   }}
                   codeSnippet={item.code_snippet}
                 />
@@ -324,6 +325,5 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
     </>
   );
 }
-
 
     

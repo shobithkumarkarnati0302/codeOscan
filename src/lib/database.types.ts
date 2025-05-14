@@ -21,6 +21,7 @@ export interface Database {
           time_complexity: string | null
           space_complexity: string | null
           explanation: string | null
+          improvement_suggestions: string | null // Added field
         }
         Insert: {
           id?: string
@@ -32,6 +33,7 @@ export interface Database {
           time_complexity?: string | null
           space_complexity?: string | null
           explanation?: string | null
+          improvement_suggestions?: string | null // Added field
         }
         Update: {
           id?: string
@@ -43,6 +45,7 @@ export interface Database {
           time_complexity?: string | null
           space_complexity?: string | null
           explanation?: string | null
+          improvement_suggestions?: string | null // Added field
         }
         Relationships: [
           {
@@ -70,6 +73,7 @@ export interface Database {
 }
 
 // Note: After creating the 'analysis_history' table in your Supabase project,
+// and adding the 'improvement_suggestions' column,
 // generate the types by running:
 // npx supabase gen types typescript --project-id your-project-id --schema public > src/lib/database.types.ts
 // And replace this file's content with the generated output.
@@ -85,4 +89,21 @@ export interface Database {
 //    AS PERMISSIVE FOR INSERT
 //    TO authenticated
 //    WITH CHECK ((auth.uid() = user_id))
+// 3. Enable update access for authenticated users on their own records:
+//    CREATE POLICY "Enable update for own user" ON "public"."analysis_history"
+//    AS PERMISSIVE FOR UPDATE
+//    TO authenticated
+//    USING ((auth.uid() = user_id))
+//    WITH CHECK ((auth.uid() = user_id));
+// 4. Enable delete access for authenticated users on their own records:
+//    CREATE POLICY "Enable delete for own user" ON "public"."analysis_history"
+//    AS PERMISSIVE FOR DELETE
+//    TO authenticated
+//    USING ((auth.uid() = user_id));
 
+// To add the improvement_suggestions column to your existing table:
+// ALTER TABLE public.analysis_history
+// ADD COLUMN improvement_suggestions TEXT NULL;
+//
+
+    

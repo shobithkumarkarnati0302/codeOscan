@@ -2,7 +2,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { analyzeCodeComplexity, type AnalyzeCodeComplexityInput } from "@/ai/flows/analyze-code-complexity";
+import { analyzeCodeComplexity, type AnalyzeCodeComplexityInput, type AnalyzeCodeComplexityOutput } from "@/ai/flows/analyze-code-complexity";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -68,23 +68,23 @@ export async function analyzeAndSaveCode(formData: FormData) {
     title,
     language,
     code,
-    explanationLevel: explanationLevel || undefined, // Ensure it's undefined if empty string
+    explanationLevel: explanationLevel || undefined, 
   };
 
   try {
-    const analysisOutput = await analyzeCodeComplexity(analysisInput);
+    const analysisOutput: AnalyzeCodeComplexityOutput = await analyzeCodeComplexity(analysisInput);
 
     const { error: dbError } = await supabase
       .from("analysis_history")
       .insert({
         user_id: user.id,
-        title: title,
+        title: title || `Analysis for ${language}`, // Ensure title is not null if form submits empty
         language: language,
         code_snippet: code,
         time_complexity: analysisOutput.timeComplexity,
         space_complexity: analysisOutput.spaceComplexity,
         explanation: analysisOutput.explanation,
-        // explanation_level is not saved to DB in this iteration
+        improvement_suggestions: analysisOutput.improvementSuggestions, // Save suggestions
       });
 
     if (dbError) {
@@ -93,7 +93,6 @@ export async function analyzeAndSaveCode(formData: FormData) {
     }
     
     // Removed revalidatePath("/dashboard") to let client-side real-time handle updates for AnalysisHistory
-    // revalidatePath("/dashboard"); 
     return { error: null, data: analysisOutput };
 
   } catch (aiError: any) {
@@ -120,7 +119,7 @@ export async function deleteAnalysisHistoryItem(id: string) {
     return { error: "Failed to delete history item: " + error.message };
   }
 
-  revalidatePath("/dashboard"); // Keep for other potential server components or if history itself becomes server-rendered
+  // revalidatePath("/dashboard"); // Removed to let client-side handle updates
   return { error: null };
 }
 
@@ -140,16 +139,13 @@ export async function updateAnalysisHistoryItem(id: string, formData: FormData) 
     return { error: "Language and code snippet are required." };
   }
   
-  // For this version, we are not re-analyzing. 
-  // We are only updating the user-editable fields.
-  // The AI-generated fields (time_complexity, space_complexity, explanation) remain unchanged.
-  // If re-analysis is desired, this function would need to call `analyzeCodeComplexity` again.
-
   const updateData: Partial<Database["public"]["Tables"]["analysis_history"]["Row"]> = {
     title: title || `Analysis for ${language}`,
     language: language,
     code_snippet: code,
-    // updated_at: new Date().toISOString(), // If you add an updated_at column
+    // Note: improvement_suggestions, time_complexity, space_complexity, explanation are not re-analyzed here.
+    // If re-analysis upon edit is desired, this function would need to call analyzeCodeComplexity again
+    // and include those fields in the updateData object.
   };
 
   const { error } = await supabase
@@ -162,7 +158,8 @@ export async function updateAnalysisHistoryItem(id: string, formData: FormData) 
     return { error: "Failed to update history item: " + error.message };
   }
 
-  revalidatePath("/dashboard"); // Keep for other potential server components
+  // revalidatePath("/dashboard"); // Removed to let client-side handle updates
   return { error: null };
 }
 
+    
