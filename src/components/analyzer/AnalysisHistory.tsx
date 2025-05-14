@@ -7,7 +7,7 @@ import type { Database } from "@/lib/database.types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, History, Clock, Edit3, Trash2, Loader2 } from "lucide-react";
+import { AlertCircle, History, Clock, Edit3, Trash2, Loader2, ChevronDown } from "lucide-react";
 import { AnalysisResultCard } from "./AnalysisResultCard";
 import {
   Accordion,
@@ -116,10 +116,12 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
               if (oldItemId) {
                 setHistory(prevHistory => prevHistory.filter(item => item.id !== oldItemId));
               } else {
+                // Fallback if old.id is not available, though it usually should be.
                 fetchHistory(); 
               }
               break;
             default:
+              // For other events or if unsure, refetch to be safe.
               fetchHistory();
           }
         }
@@ -159,6 +161,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
         title: "Deletion Successful",
         description: "The analysis history item has been deleted.",
       });
+      // Optimistically update UI
       setHistory(prev => prev.filter(h => h.id !== itemToDelete!.id)); 
     }
     setItemToDelete(null);
@@ -204,9 +207,12 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
       <ScrollArea className="h-[600px] pr-4">
         <Accordion type="single" collapsible className="w-full space-y-3">
           {history.map((item) => (
-            <AccordionItem value={item.id} key={item.id} className="border bg-card rounded-lg shadow-sm">
+            <AccordionItem value={item.id} key={item.id} className="border bg-card rounded-lg shadow-sm group">
               <div className="flex items-center justify-between p-4 hover:bg-muted/50 rounded-t-lg">
-                <AccordionTrigger className="flex-1 p-0 hover:no-underline">
+                <AccordionTrigger 
+                  iconPosition="start" 
+                  className="flex-1 p-0 hover:no-underline"
+                >
                   <div className="flex flex-col items-start text-left w-full">
                     <h3 className="text-md font-semibold text-primary">
                       {item.title || "Untitled Analysis"}
@@ -283,4 +289,3 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
     </>
   );
 }
-
