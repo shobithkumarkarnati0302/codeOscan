@@ -26,13 +26,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { analyzeAndSaveCode } from "@/app/actions";
-import { PROGRAMMING_LANGUAGES } from "@/lib/constants";
+import { PROGRAMMING_LANGUAGES, EXPLANATION_LEVELS } from "@/lib/constants";
 import type { AnalyzeCodeComplexityOutput } from "@/ai/flows/analyze-code-complexity";
 import { Loader2, Wand2 } from "lucide-react";
 
 const formSchema = z.object({
   title: z.string().max(100, "Title can be at most 100 characters.").optional(),
   language: z.string().min(1, { message: "Please select a language." }),
+  explanationLevel: z.string().optional(),
   code: z
     .string()
     .min(10, { message: "Code must be at least 10 characters." })
@@ -45,6 +46,7 @@ interface CodeAnalyzerFormProps {
   onAnalysisStart: (data: {
     title?: string;
     language: string;
+    explanationLevel?: string;
     code: string;
   }) => void;
   onAnalysisComplete: (result: AnalyzeCodeComplexityOutput | null) => void;
@@ -62,6 +64,7 @@ export function CodeAnalyzerForm({
     defaultValues: {
       title: "",
       language: "",
+      explanationLevel: "Intermediate", // Default explanation level
       code: "",
     },
   });
@@ -71,6 +74,7 @@ export function CodeAnalyzerForm({
     onAnalysisStart({
       title: values.title,
       language: values.language,
+      explanationLevel: values.explanationLevel,
       code: values.code,
     });
 
@@ -78,6 +82,9 @@ export function CodeAnalyzerForm({
     formData.append("title", values.title || `Analysis for ${values.language}`);
     formData.append("language", values.language);
     formData.append("code", values.code);
+    if (values.explanationLevel) {
+      formData.append("explanationLevel", values.explanationLevel);
+    }
 
     try {
       const result = await analyzeAndSaveCode(formData);
@@ -133,35 +140,65 @@ export function CodeAnalyzerForm({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="language"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Programming Language</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                disabled={isLoading}
-                value={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a language" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {PROGRAMMING_LANGUAGES.map((lang) => (
-                    <SelectItem key={lang.value} value={lang.value}>
-                      {lang.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="language"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Programming Language</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={isLoading}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a language" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {PROGRAMMING_LANGUAGES.map((lang) => (
+                      <SelectItem key={lang.value} value={lang.value}>
+                        {lang.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="explanationLevel"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Explanation Level</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={isLoading}
+                  defaultValue="Intermediate"
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select explanation level" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {EXPLANATION_LEVELS.map((level) => (
+                      <SelectItem key={level.value} value={level.value}>
+                        {level.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}

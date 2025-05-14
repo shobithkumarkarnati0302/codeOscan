@@ -17,11 +17,13 @@ export function AnalysisInteraction() {
     title?: string;
     language?: string;
     code?: string;
+    explanationLevel?: string;
   } | null>(null);
 
   const handleAnalysisStart = (data: {
     title?: string;
     language: string;
+    explanationLevel?: string;
     code: string;
   }) => {
     setIsLoadingAnalysis(true);

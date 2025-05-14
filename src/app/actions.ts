@@ -58,6 +58,7 @@ export async function analyzeAndSaveCode(formData: FormData) {
   const title = formData.get("title") as string;
   const language = formData.get("language") as string;
   const code = formData.get("code") as string;
+  const explanationLevel = formData.get("explanationLevel") as string | undefined;
 
   if (!language || !code) {
     return { error: "Language and code snippet are required.", data: null };
@@ -67,6 +68,7 @@ export async function analyzeAndSaveCode(formData: FormData) {
     title,
     language,
     code,
+    explanationLevel: explanationLevel || undefined, // Ensure it's undefined if empty string
   };
 
   try {
@@ -82,6 +84,7 @@ export async function analyzeAndSaveCode(formData: FormData) {
         time_complexity: analysisOutput.timeComplexity,
         space_complexity: analysisOutput.spaceComplexity,
         explanation: analysisOutput.explanation,
+        // explanation_level is not saved to DB in this iteration
       });
 
     if (dbError) {

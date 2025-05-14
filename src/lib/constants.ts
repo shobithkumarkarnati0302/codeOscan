@@ -13,3 +13,9 @@ export const PROGRAMMING_LANGUAGES = [
   { value: "kotlin", label: "Kotlin" },
   { value: "rust", label: "Rust" },
 ];
+
+export const EXPLANATION_LEVELS = [
+  { value: "Basic", label: "Basic" },
+  { value: "Intermediate", label: "Intermediate" },
+  { value: "Deep", label: "Deep" },
+];

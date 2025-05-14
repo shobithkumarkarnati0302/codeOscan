@@ -18,6 +18,7 @@ const AnalyzeCodeComplexityInputSchema = z.object({
   language: z.string().describe('The programming language of the code snippet.'),
   code: z.string().describe('The code snippet to analyze.'),
   title: z.string().describe('The title of the code snippet.'),
+  explanationLevel: z.string().optional().describe('The desired level of detail for the explanation (e.g., Basic, Intermediate, Deep).'),
 });
 
 export type AnalyzeCodeComplexityInput = z.infer<typeof AnalyzeCodeComplexityInputSchema>;
@@ -42,7 +43,12 @@ const analyzeCodeComplexityPrompt = ai.definePrompt({
   output: {schema: AnalyzeCodeComplexityOutputSchema},
   prompt: `You are an expert software engineer specializing in code analysis.
 
-  Analyze the time and space complexity of the given code snippet. Provide a brief explanation of your analysis.
+  Analyze the time and space complexity of the given code snippet.
+  {{#if explanationLevel}}
+  Provide an explanation at a {{{explanationLevel}}} level of detail.
+  {{else}}
+  Provide a brief explanation of your analysis.
+  {{/if}}
 
   Language: {{{language}}}
   Title: {{{title}}}
@@ -51,7 +57,7 @@ const analyzeCodeComplexityPrompt = ai.definePrompt({
   {{{code}}}
   \`\`\`
 
-  Respond in a ordered paragraph. Give time complexity as 1) and space complexity as 2). Provide a brief explanation of the time and space complexity.
+  Respond in an ordered paragraph. Give time complexity as 1) and space complexity as 2). Provide the explanation for the time and space complexity, adhering to the requested level of detail if specified.
   `,
 });
 
