@@ -353,7 +353,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
 
   return (
     <>
-      <div className="flex items-center justify-between pt-4 mb-4 pb-4 border-b">
+      <div className="flex items-center justify-between pt-6 mb-4 pb-4 border-b">
         <h2 className="text-2xl font-semibold text-foreground">Analysis History</h2>
         <div className="flex items-center gap-2">
           <div className="min-w-[180px]">
