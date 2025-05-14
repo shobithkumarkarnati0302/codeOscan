@@ -245,7 +245,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
               </AccordionContent>
             </AccordionItem>
           ))}
-        </Accordion
+        </Accordion>
       </ScrollArea>
 
       {/* Delete Confirmation Dialog */}
