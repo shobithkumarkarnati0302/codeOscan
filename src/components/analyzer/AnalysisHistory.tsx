@@ -5,7 +5,6 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client"; 
 import type { Database } from "@/lib/database.types";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, History, Clock, Edit3, Trash2, Loader2, Star, Filter, Share2, Copy, Save, StickyNote, RefreshCw } from "lucide-react";
 import { AnalysisResultCard } from "./AnalysisResultCard";
@@ -110,7 +109,13 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
           switch (payload.eventType) {
             case 'INSERT':
               const newItem = payload.new as AnalysisHistoryItem;
-              console.log('Real-time INSERT received, new item (title, id, created_at, is_favorite):', { title: newItem.title, id: newItem.id, created_at: newItem.created_at, is_favorite: newItem.is_favorite });
+              console.log('Real-time INSERT received, new item (title, id, created_at, is_favorite, improvement_suggestions):', { 
+                title: newItem.title, 
+                id: newItem.id, 
+                created_at: newItem.created_at, 
+                is_favorite: newItem.is_favorite,
+                improvement_suggestions: newItem.improvement_suggestions,
+              });
               setHistory(prevHistory => {
                 console.log('Previous history length before INSERT:', prevHistory.length);
                 if (prevHistory.some(item => item.id === newItem.id)) {
@@ -127,13 +132,19 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
                   return timeB - timeA; 
                 });
                 const finalHistory = updatedHistory.slice(0, 50); 
-                console.log('History state updated with new item. New history length:', finalHistory.length, 'First item:', finalHistory[0]?.title, 'Full new history:', finalHistory);
+                console.log('History state updated with new item. New history length:', finalHistory.length, 'First item:', finalHistory[0]?.title, 'Full new history:', finalHistory.map(i => ({id: i.id, title: i.title, created_at: i.created_at })));
                 return finalHistory;
               });
               break;
             case 'UPDATE':
               const updatedItem = payload.new as AnalysisHistoryItem;
-              console.log('Real-time UPDATE received, updated item (title, id, is_favorite, user_notes):', { title: updatedItem.title, id: updatedItem.id, is_favorite: updatedItem.is_favorite, user_notes: updatedItem.user_notes });
+              console.log('Real-time UPDATE received, updated item (title, id, is_favorite, user_notes, improvement_suggestions):', { 
+                title: updatedItem.title, 
+                id: updatedItem.id, 
+                is_favorite: updatedItem.is_favorite, 
+                user_notes: updatedItem.user_notes,
+                improvement_suggestions: updatedItem.improvement_suggestions,
+              });
               setHistory(prevHistory => {
                 const newHistory = prevHistory.map(item => item.id === updatedItem.id ? updatedItem : item);
                 newHistory.sort((a,b) => {
@@ -325,40 +336,35 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
 
   return (
     <>
-      <div className="mb-6 p-4 border bg-card rounded-lg shadow-sm">
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="flex items-center gap-2">
-                <Filter className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold">Filter History</h3>
-            </div>
-            <div className="flex gap-2 items-center w-full sm:w-auto">
-              <div className="flex-grow sm:min-w-[200px]">
-                  <Label htmlFor="language-filter" className="sr-only">Filter by Language</Label>
-                  <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                  <SelectTrigger id="language-filter" className="w-full">
-                      <SelectValue placeholder="All Languages" />
-                  </SelectTrigger>
-                  <SelectContent>
-                      <SelectItem value={ALL_LANGUAGES_FILTER_VALUE}>All Languages</SelectItem>
-                      {PROGRAMMING_LANGUAGES.map((lang) => (
-                      <SelectItem key={lang.value} value={lang.value}>
-                          {lang.label}
-                      </SelectItem>
-                      ))}
-                  </SelectContent>
-                  </Select>
-              </div>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={handleRefreshHistory} 
-                disabled={isLoading}
-                aria-label="Refresh history"
-                className="shrink-0"
-              >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              </Button>
-            </div>
+      <div className="flex items-center justify-between mb-4 pb-4 border-b">
+        <h2 className="text-2xl font-semibold text-foreground">Analysis History</h2>
+        <div className="flex items-center gap-2">
+          <div className="min-w-[180px]">
+            <Label htmlFor="language-filter" className="sr-only">Filter by Language</Label>
+            <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+            <SelectTrigger id="language-filter" className="w-full h-9">
+                <SelectValue placeholder="All Languages" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value={ALL_LANGUAGES_FILTER_VALUE}>All Languages</SelectItem>
+                {PROGRAMMING_LANGUAGES.map((lang) => (
+                <SelectItem key={lang.value} value={lang.value}>
+                    {lang.label}
+                </SelectItem>
+                ))}
+            </SelectContent>
+            </Select>
+          </div>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={handleRefreshHistory} 
+            disabled={isLoading}
+            aria-label="Refresh history"
+            className="shrink-0 h-9 w-9"
+          >
+            {isLoading && togglingFavoriteId === null ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          </Button>
         </div>
       </div>
 
@@ -462,7 +468,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
                   title={item.title || undefined}
                   language={item.language}
                   createdAt={item.created_at}
-                  userNotes={item.user_notes} // Pass user notes for display
+                  userNotes={item.user_notes} 
                 />
                 <Separator className="my-4" />
                 <div className="space-y-2">

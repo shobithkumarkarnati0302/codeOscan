@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { AnalysisInteraction } from "@/components/analyzer/AnalysisInteraction";
 import { AnalysisHistory } from "@/components/analyzer/AnalysisHistory";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default async function DashboardPage() {
   const supabase = createClient();
@@ -19,9 +19,8 @@ export default async function DashboardPage() {
     <div className="container mx-auto py-8 px-4 space-y-8">
       <AnalysisInteraction />
       <Card className="shadow-lg">
-         <CardHeader>
-          <CardTitle className="text-2xl">Analysis History</CardTitle>
-        </CardHeader>
+        {/* The CardHeader that previously held the "Analysis History" title is removed. */}
+        {/* The AnalysisHistory component will now render its own header. */}
         <CardContent>
           <AnalysisHistory userId={user.id} />
         </CardContent>
