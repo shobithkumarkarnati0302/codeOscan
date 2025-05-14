@@ -115,8 +115,8 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
         title: "Deletion Successful",
         description: "The analysis history item has been deleted.",
       });
-      // History will be refetched by the realtime subscription or can be manually refetched here
-      // setHistory(prev => prev.filter(h => h.id !== itemToDelete.id)); 
+      // Optimistically update the UI by removing the item from the local state
+      setHistory(prev => prev.filter(h => h.id !== itemToDelete!.id)); 
     }
     setItemToDelete(null);
   };
