@@ -4,9 +4,9 @@
 'use server';
 
 /**
- * @fileOverview Analyzes the time and space complexity of a given code snippet.
+ * @fileOverview Analyzes the time and space complexity of a given code snippet and provides improvement suggestions.
  *
- * - analyzeCodeComplexity - A function that takes code as input and returns its time and space complexity.
+ * - analyzeCodeComplexity - A function that takes code as input and returns its time/space complexity and suggestions.
  * - AnalyzeCodeComplexityInput - The input type for the analyzeCodeComplexity function.
  * - AnalyzeCodeComplexityOutput - The return type for the analyzeCodeComplexity function.
  */
@@ -27,6 +27,7 @@ const AnalyzeCodeComplexityOutputSchema = z.object({
   timeComplexity: z.string().describe('The time complexity of the code snippet.'),
   spaceComplexity: z.string().describe('The space complexity of the code snippet.'),
   explanation: z.string().describe('A brief explanation of the time and space complexity.'),
+  improvementSuggestions: z.string().optional().describe('Suggestions to improve time or space complexity, if applicable. If no specific suggestions, state that the code is optimal or provide general advice.'),
 });
 
 export type AnalyzeCodeComplexityOutput = z.infer<typeof AnalyzeCodeComplexityOutputSchema>;
@@ -57,7 +58,11 @@ const analyzeCodeComplexityPrompt = ai.definePrompt({
   {{{code}}}
   \`\`\`
 
-  Respond in an ordered paragraph. Give time complexity as 1) and space complexity as 2). Provide the explanation for the time and space complexity, adhering to the requested level of detail if specified.
+  Respond by providing:
+  1. Time complexity.
+  2. Space complexity.
+  3. An explanation for the time and space complexity, adhering to the requested level of detail if specified.
+  4. Suggestions for improving the time or space complexity. If the code is already optimal for its purpose or if suggestions are not applicable (e.g., for very simple snippets), clearly state that or offer general best practice advice related to performance for the given language. Format suggestions as a paragraph or bullet points.
   `,
 });
 
