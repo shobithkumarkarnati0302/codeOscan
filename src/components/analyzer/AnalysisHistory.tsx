@@ -109,12 +109,13 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
           switch (payload.eventType) {
             case 'INSERT':
               const newItem = payload.new as AnalysisHistoryItem;
-              console.log('Real-time INSERT received, new item (title, id, created_at, is_favorite, improvement_suggestions):', { 
+              console.log('Real-time INSERT received, new item (title, id, created_at, is_favorite, improvement_suggestions, user_notes):', { 
                 title: newItem.title, 
                 id: newItem.id, 
                 created_at: newItem.created_at, 
                 is_favorite: newItem.is_favorite,
                 improvement_suggestions: newItem.improvement_suggestions,
+                user_notes: newItem.user_notes,
               });
               setHistory(prevHistory => {
                 console.log('Previous history length before INSERT:', prevHistory.length);
@@ -132,7 +133,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
                   return timeB - timeA; 
                 });
                 const finalHistory = updatedHistory.slice(0, 50); 
-                console.log('History state updated with new item. New history length:', finalHistory.length, 'First item:', finalHistory[0]?.title, 'Full new history:', finalHistory.map(i => ({id: i.id, title: i.title, created_at: i.created_at })));
+                console.log('History state updated with new item. New history length:', finalHistory.length, 'First item:', finalHistory[0]?.title, 'Full new history:', finalHistory.map(i => ({id: i.id, title: i.title, created_at: i.created_at, is_favorite: i.is_favorite, user_notes: i.user_notes })));
                 return finalHistory;
               });
               break;
@@ -229,6 +230,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
 
   const handleToggleFavorite = async (item: AnalysisHistoryItem) => {
     setTogglingFavoriteId(item.id);
+    const originalIsFavorite = item.is_favorite;
 
     // Optimistic UI update
     setHistory(prevHistory => 
@@ -237,7 +239,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
       )
     );
 
-    const result = await toggleFavoriteStatus(item.id, !!item.is_favorite);
+    const result = await toggleFavoriteStatus(item.id, !!originalIsFavorite); // Pass original status to server
     setTogglingFavoriteId(null);
 
     if (result.error) {
@@ -249,13 +251,13 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
       // Revert optimistic update on error
       setHistory(prevHistory => 
         prevHistory.map(h => 
-          h.id === item.id ? { ...h, is_favorite: item.is_favorite } : h // Revert to original state
+          h.id === item.id ? { ...h, is_favorite: originalIsFavorite } : h // Revert to original state
         )
       );
     } else {
       toast({
         title: "Favorite Updated",
-        description: `Item ${!item.is_favorite ? "marked" : "unmarked"} as favorite.`, // Logic based on the new state after optimistic update
+        description: `Item ${!originalIsFavorite ? "marked" : "unmarked"} as favorite.`, 
       });
       // Real-time update will eventually confirm, or if it doesn't, this optimistic update holds.
     }
@@ -351,7 +353,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4 pb-4 border-b">
+      <div className="flex items-center justify-between pt-4 mb-4 pb-4 border-b">
         <h2 className="text-2xl font-semibold text-foreground">Analysis History</h2>
         <div className="flex items-center gap-2">
           <div className="min-w-[180px]">
