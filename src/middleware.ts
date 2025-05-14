@@ -59,7 +59,9 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  if (!session && pathname.startsWith('/dashboard')) {
+  const protectedRoutes = ['/dashboard', '/profile'];
+
+  if (!session && protectedRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
