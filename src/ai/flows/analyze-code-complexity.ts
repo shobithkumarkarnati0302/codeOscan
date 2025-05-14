@@ -18,7 +18,6 @@ const AnalyzeCodeComplexityInputSchema = z.object({
   language: z.string().describe('The programming language of the code snippet.'),
   code: z.string().describe('The code snippet to analyze.'),
   title: z.string().describe('The title of the code snippet.'),
-  inputSizeN: z.string().optional().describe('Optional. The expected input size (e.g., "n", "1000") to help tailor complexity analysis.'),
 });
 
 export type AnalyzeCodeComplexityInput = z.infer<typeof AnalyzeCodeComplexityInputSchema>;
@@ -44,9 +43,6 @@ const analyzeCodeComplexityPrompt = ai.definePrompt({
   prompt: `You are an expert software engineer specializing in code analysis.
 
   Analyze the time and space complexity of the given code snippet. Provide a brief explanation of your analysis.
-  {{#if inputSizeN}}
-  Consider the expected input size (n) to be: {{{inputSizeN}}}.
-  {{/if}}
 
   Language: {{{language}}}
   Title: {{{title}}}

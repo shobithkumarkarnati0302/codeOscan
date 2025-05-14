@@ -57,7 +57,6 @@ export async function analyzeAndSaveCode(formData: FormData) {
   const title = formData.get("title") as string;
   const language = formData.get("language") as string;
   const code = formData.get("code") as string;
-  const inputSizeN = formData.get("inputSizeN") as string | undefined;
 
   if (!language || !code) {
     return { error: "Language and code snippet are required.", data: null };
@@ -67,7 +66,6 @@ export async function analyzeAndSaveCode(formData: FormData) {
     title,
     language,
     code,
-    inputSizeN: inputSizeN || undefined, // Ensure it's undefined if empty string
   };
 
   try {
@@ -83,7 +81,6 @@ export async function analyzeAndSaveCode(formData: FormData) {
         time_complexity: analysisOutput.timeComplexity,
         space_complexity: analysisOutput.spaceComplexity,
         explanation: analysisOutput.explanation,
-        // input_size_n: inputSizeN || null, // Would add this if DB schema is updated
       });
 
     if (dbError) {
