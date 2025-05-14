@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { handleLogin, handleSignUp } from "@/app/actions"; // Assuming actions.ts is in app directory
+import { handleLogin, handleSignUp } from "@/app/actions";
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
@@ -68,7 +67,6 @@ export function LoginForm() {
             ? "Check your email for verification link."
             : "Redirecting to dashboard...",
         });
-        // Redirect is handled by middleware or server action
       }
     } catch (e: any) {
       toast({
@@ -130,21 +128,21 @@ export function LoginForm() {
           </Button>
         </form>
       </Form>
+
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">
-            Or
-          </span>
+          <span className="bg-card px-2 text-muted-foreground">Or</span>
         </div>
       </div>
+
       <Button
         variant="outline"
         type="button"
         disabled={isLoading}
-        onClick={()={() => setIsSignUp(!isSignUp)}
+        onClick={() => setIsSignUp(!isSignUp)}
       >
         {isSignUp
           ? "Already have an account? Sign In"

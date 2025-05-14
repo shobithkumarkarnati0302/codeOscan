@@ -28,7 +28,6 @@ import { useState } from "react";
 import { analyzeAndSaveCode } from "@/app/actions";
 import { PROGRAMMING_LANGUAGES } from "@/lib/constants";
 import type { AnalyzeCodeComplexityOutput } from "@/ai/flows/analyze-code-complexity";
-import { AnalysisResultCard } from "./AnalysisResultCard";
 import { Loader2, Wand2 } from "lucide-react";
 
 const formSchema = z.object({
@@ -42,11 +41,21 @@ const formSchema = z.object({
 
 type CodeAnalyzerFormValues = z.infer<typeof formSchema>;
 
-export function CodeAnalyzerForm() {
+interface CodeAnalyzerFormProps {
+  onAnalysisStart: (data: {
+    title?: string;
+    language: string;
+    code: string;
+  }) => void;
+  onAnalysisComplete: (result: AnalyzeCodeComplexityOutput | null) => void;
+}
+
+export function CodeAnalyzerForm({
+  onAnalysisStart,
+  onAnalysisComplete,
+}: CodeAnalyzerFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [analysisResult, setAnalysisResult] =
-    useState<AnalyzeCodeComplexityOutput | null>(null);
 
   const form = useForm<CodeAnalyzerFormValues>({
     resolver: zodResolver(formSchema),
@@ -55,11 +64,17 @@ export function CodeAnalyzerForm() {
       language: "",
       code: "",
     },
+    // Reset form on successful submission or clear if needed.
+    // For now, let's keep the values.
   });
 
   async function onSubmit(values: CodeAnalyzerFormValues) {
     setIsLoading(true);
-    setAnalysisResult(null);
+    onAnalysisStart({
+      title: values.title,
+      language: values.language,
+      code: values.code,
+    });
 
     const formData = new FormData();
     formData.append("title", values.title || `Analysis for ${values.language}`);
@@ -74,17 +89,16 @@ export function CodeAnalyzerForm() {
           description: result.error,
           variant: "destructive",
         });
+        onAnalysisComplete(null);
       } else if (result.data) {
-        setAnalysisResult(result.data);
+        onAnalysisComplete(result.data);
         toast({
           title: "Analysis Complete",
-          description: "Code complexity has been analyzed.",
+          description: "Code complexity has been analyzed and saved.",
         });
-        // Optionally refresh history if it's a client component or via router.refresh() for server component.
-        // For now, history is a separate server component, so it will re-fetch on next navigation or full page refresh.
-        // To force refresh of history, we'd need to use router.refresh() here.
-        // import { useRouter } from 'next/navigation';
-        // const router = useRouter(); router.refresh();
+      } else {
+        // Should not happen if API returns data or error consistently
+        onAnalysisComplete(null);
       }
     } catch (e: any) {
       toast({
@@ -92,111 +106,97 @@ export function CodeAnalyzerForm() {
         description: e.message || "Please try again.",
         variant: "destructive",
       });
+      onAnalysisComplete(null);
     } finally {
       setIsLoading(false);
     }
   }
 
   return (
-    <div className="space-y-6">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Title (Optional)</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="e.g., My Sorting Algorithm"
-                    {...field}
-                    disabled={isLoading}
-                  />
-                </FormControl>
-                <FormDescription>
-                  A descriptive title for your code snippet.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="language"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Programming Language</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title (Optional)</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="e.g., My Sorting Algorithm"
+                  {...field}
                   disabled={isLoading}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a language" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {PROGRAMMING_LANGUAGES.map((lang) => (
-                      <SelectItem key={lang.value} value={lang.value}>
-                        {lang.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                />
+              </FormControl>
+              <FormDescription>
+                A descriptive title for your code snippet.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          <FormField
-            control={form.control}
-            name="code"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Code Snippet</FormLabel>
+        <FormField
+          control={form.control}
+          name="language"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Programming Language</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={isLoading}
+                value={field.value} // Ensure value is controlled for reset
+              >
                 <FormControl>
-                  <Textarea
-                    placeholder="Enter your code here..."
-                    className="min-h-[200px] font-mono text-sm"
-                    {...field}
-                    disabled={isLoading}
-                  />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a language" />
+                  </SelectTrigger>
                 </FormControl>
-                <FormDescription>
-                  Paste the code you want to analyze. Max 5000 characters.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                <SelectContent>
+                  {PROGRAMMING_LANGUAGES.map((lang) => (
+                    <SelectItem key={lang.value} value={lang.value}>
+                      {lang.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
-            {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Wand2 className="mr-2 h-4 w-4" />
-            )}
-            Analyze Complexity
-          </Button>
-        </form>
-      </Form>
+        <FormField
+          control={form.control}
+          name="code"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Code Snippet</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Enter your code here..."
+                  className="min-h-[200px] font-mono text-sm"
+                  {...field}
+                  disabled={isLoading}
+                />
+              </FormControl>
+              <FormDescription>
+                Paste the code you want to analyze. Max 5000 characters.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      {isLoading && (
-        <div className="mt-6 flex items-center justify-center rounded-md border border-dashed p-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-3 text-muted-foreground">Analyzing your code...</p>
-        </div>
-      )}
-
-      {analysisResult && (
-        <div className="mt-8">
-          <h3 className="text-xl font-semibold mb-4">Analysis Result</h3>
-          <AnalysisResultCard result={analysisResult} />
-        </div>
-      )}
-    </div>
+        <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
+          {isLoading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Wand2 className="mr-2 h-4 w-4" />
+          )}
+          Analyze Complexity
+        </Button>
+      </form>
+    </Form>
   );
 }
