@@ -40,6 +40,8 @@ interface AnalysisHistoryProps {
   userId: string;
 }
 
+const ALL_LANGUAGES_FILTER_VALUE = "all_languages_filter_option";
+
 export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
   const [history, setHistory] = useState<AnalysisHistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
   const [itemToEdit, setItemToEdit] = useState<AnalysisHistoryItem | null>(null);
   
   const [togglingFavoriteId, setTogglingFavoriteId] = useState<string | null>(null);
-  const [selectedLanguage, setSelectedLanguage] = useState<string>("");
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(""); // Empty string means show placeholder / all languages
 
 
   const { toast } = useToast();
@@ -67,7 +69,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(50); // Increased limit slightly for more history items
+        .limit(50); 
 
       if (dbError) {
         console.error("Error fetching initial history:", dbError);
@@ -109,7 +111,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
                   return timeB - timeA; 
                 });
                 const finalHistory = updatedHistory.slice(0, 50); 
-                console.log('History state updated with new item. New history length:', finalHistory.length, 'First item:', finalHistory[0]?.title);
+                console.log('History state updated with new item. New history length:', finalHistory.length, 'First item:', finalHistory[0]?.title, 'Full new history:', finalHistory);
                 return finalHistory;
               });
               break;
@@ -220,8 +222,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
   
   const filteredHistory = useMemo(() => {
     return history.filter(item => {
-      const languageMatch = !selectedLanguage || item.language === selectedLanguage;
-      // Add more filter conditions here in the future (e.g., date, search term)
+      const languageMatch = !selectedLanguage || selectedLanguage === ALL_LANGUAGES_FILTER_VALUE || item.language === selectedLanguage;
       return languageMatch;
     });
   }, [history, selectedLanguage]);
@@ -281,7 +282,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
                     <SelectValue placeholder="All Languages" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="">All Languages</SelectItem>
+                    <SelectItem value={ALL_LANGUAGES_FILTER_VALUE}>All Languages</SelectItem>
                     {PROGRAMMING_LANGUAGES.map((lang) => (
                     <SelectItem key={lang.value} value={lang.value}>
                         {lang.label}
@@ -314,7 +315,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
               <div className="flex items-center justify-between p-4 hover:bg-muted/50 rounded-t-lg">
                 <AccordionTrigger 
                   iconPosition="start" 
-                  className="flex-1 p-0 hover:no-underline mr-2" // Added margin-right
+                  className="flex-1 p-0 hover:no-underline mr-2" 
                 >
                   <div className="flex flex-col items-start text-left w-full">
                     <h3 className="text-md font-semibold text-primary">
