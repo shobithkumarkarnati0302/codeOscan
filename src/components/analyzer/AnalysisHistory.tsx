@@ -229,6 +229,14 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
 
   const handleToggleFavorite = async (item: AnalysisHistoryItem) => {
     setTogglingFavoriteId(item.id);
+
+    // Optimistic UI update
+    setHistory(prevHistory => 
+      prevHistory.map(h => 
+        h.id === item.id ? { ...h, is_favorite: !h.is_favorite } : h
+      )
+    );
+
     const result = await toggleFavoriteStatus(item.id, !!item.is_favorite);
     setTogglingFavoriteId(null);
 
@@ -238,11 +246,18 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
         description: result.error,
         variant: "destructive",
       });
+      // Revert optimistic update on error
+      setHistory(prevHistory => 
+        prevHistory.map(h => 
+          h.id === item.id ? { ...h, is_favorite: item.is_favorite } : h // Revert to original state
+        )
+      );
     } else {
       toast({
         title: "Favorite Updated",
-        description: `Item ${item.is_favorite ? "unmarked" : "marked"} as favorite.`,
+        description: `Item ${!item.is_favorite ? "marked" : "unmarked"} as favorite.`, // Logic based on the new state after optimistic update
       });
+      // Real-time update will eventually confirm, or if it doesn't, this optimistic update holds.
     }
   };
   
