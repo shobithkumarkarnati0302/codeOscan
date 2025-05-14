@@ -86,8 +86,8 @@ export function Header() {
           {loading ? null : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full"> {/* Adjusted button size if needed */}
+                  <Avatar className="h-9 w-9"> {/* Increased Avatar size */}
                     <AvatarImage src={user.user_metadata?.avatar_url} alt={userEmail || "User"} />
                     <AvatarFallback>{emailInitial}</AvatarFallback>
                   </Avatar>
