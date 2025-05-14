@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ThemeToggleButton } from "@/components/theme/ThemeToggleButton";
 
 async function handleLogout(router: ReturnType<typeof useRouter>) {
   const supabase = createClient();
@@ -74,6 +75,7 @@ export function Header() {
           )}
         </nav>
         <div className="flex items-center space-x-2">
+          <ThemeToggleButton />
           {loading ? null : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
