@@ -20,9 +20,7 @@ export async function handleLogin(formData: FormData) {
   if (error) {
     return error.message;
   }
-  // Successful login will be handled by middleware redirecting to /dashboard
-  // For client-side updates, we might need to revalidate or redirect explicitly
-  revalidatePath("/", "layout"); // Revalidate all paths to update auth state
+  revalidatePath("/", "layout"); 
   redirect("/dashboard");
 }
 
@@ -31,24 +29,21 @@ export async function handleSignUp(formData: FormData) {
   const password = formData.get("password") as string;
   const supabase = createClient();
   
-  // For Next.js SSR, ensure origin is correctly set for email confirmation links
   const origin = headers().get("origin");
 
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/auth/callback`, // You would need an /auth/callback route if not using middleware for this
+      emailRedirectTo: `${origin}/auth/callback`,
     },
   });
 
   if (error) {
     return error.message;
   }
-  // Successful sign-up will typically send a confirmation email.
-  // User will then verify, and login.
   revalidatePath("/", "layout");
-  return null; // Indicate success, user should check email
+  return null; 
 }
 
 export async function analyzeAndSaveCode(formData: FormData) {
@@ -62,6 +57,7 @@ export async function analyzeAndSaveCode(formData: FormData) {
   const title = formData.get("title") as string;
   const language = formData.get("language") as string;
   const code = formData.get("code") as string;
+  const inputSizeN = formData.get("inputSizeN") as string | undefined;
 
   if (!language || !code) {
     return { error: "Language and code snippet are required.", data: null };
@@ -71,6 +67,7 @@ export async function analyzeAndSaveCode(formData: FormData) {
     title,
     language,
     code,
+    inputSizeN: inputSizeN || undefined, // Ensure it's undefined if empty string
   };
 
   try {
@@ -86,6 +83,7 @@ export async function analyzeAndSaveCode(formData: FormData) {
         time_complexity: analysisOutput.timeComplexity,
         space_complexity: analysisOutput.spaceComplexity,
         explanation: analysisOutput.explanation,
+        // input_size_n: inputSizeN || null, // Would add this if DB schema is updated
       });
 
     if (dbError) {
@@ -93,7 +91,7 @@ export async function analyzeAndSaveCode(formData: FormData) {
       return { error: "Failed to save analysis to history. " + dbError.message, data: analysisOutput };
     }
     
-    revalidatePath("/dashboard"); // Revalidate dashboard to show new history item
+    revalidatePath("/dashboard"); 
     return { error: null, data: analysisOutput };
 
   } catch (aiError: any) {

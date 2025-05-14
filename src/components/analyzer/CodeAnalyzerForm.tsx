@@ -37,6 +37,7 @@ const formSchema = z.object({
     .string()
     .min(10, { message: "Code must be at least 10 characters." })
     .max(5000, { message: "Code cannot exceed 5000 characters." }),
+  inputSizeN: z.string().max(50, "Input size can be at most 50 characters.").optional(),
 });
 
 type CodeAnalyzerFormValues = z.infer<typeof formSchema>;
@@ -46,6 +47,7 @@ interface CodeAnalyzerFormProps {
     title?: string;
     language: string;
     code: string;
+    inputSizeN?: string;
   }) => void;
   onAnalysisComplete: (result: AnalyzeCodeComplexityOutput | null) => void;
 }
@@ -63,9 +65,8 @@ export function CodeAnalyzerForm({
       title: "",
       language: "",
       code: "",
+      inputSizeN: "",
     },
-    // Reset form on successful submission or clear if needed.
-    // For now, let's keep the values.
   });
 
   async function onSubmit(values: CodeAnalyzerFormValues) {
@@ -74,12 +75,16 @@ export function CodeAnalyzerForm({
       title: values.title,
       language: values.language,
       code: values.code,
+      inputSizeN: values.inputSizeN,
     });
 
     const formData = new FormData();
     formData.append("title", values.title || `Analysis for ${values.language}`);
     formData.append("language", values.language);
     formData.append("code", values.code);
+    if (values.inputSizeN) {
+      formData.append("inputSizeN", values.inputSizeN);
+    }
 
     try {
       const result = await analyzeAndSaveCode(formData);
@@ -97,7 +102,6 @@ export function CodeAnalyzerForm({
           description: "Code complexity has been analyzed and saved.",
         });
       } else {
-        // Should not happen if API returns data or error consistently
         onAnalysisComplete(null);
       }
     } catch (e: any) {
@@ -146,7 +150,7 @@ export function CodeAnalyzerForm({
                 onValueChange={field.onChange}
                 defaultValue={field.value}
                 disabled={isLoading}
-                value={field.value} // Ensure value is controlled for reset
+                value={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -182,6 +186,27 @@ export function CodeAnalyzerForm({
               </FormControl>
               <FormDescription>
                 Paste the code you want to analyze. Max 5000 characters.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="inputSizeN"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Expected Input Size (n) (Optional)</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="e.g., n, 1000, N log N"
+                  {...field}
+                  disabled={isLoading}
+                />
+              </FormControl>
+              <FormDescription>
+                Helps the AI tailor the complexity analysis.
               </FormDescription>
               <FormMessage />
             </FormItem>
