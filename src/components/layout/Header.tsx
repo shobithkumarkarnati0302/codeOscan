@@ -62,8 +62,8 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-18 items-center"> {/* Changed h-16 to h-18 */}
-        <Link href="/" className="mr-8 flex items-center space-x-2"> {/* Changed mr-6 to mr-8 */}
+      <div className="container flex h-18 items-center"> {/* Ensure h-18 is used */}
+        <Link href="/" className="mr-8 flex items-center space-x-2"> 
           <Logo />
         </Link>
         <nav className="flex flex-1 items-center space-x-4">
@@ -71,7 +71,7 @@ export function Header() {
             <Link
               href="/dashboard"
               className={cn(
-                "text-lg font-medium transition-colors hover:text-foreground", // Changed text-base to text-lg
+                "text-lg font-medium transition-colors hover:text-foreground", 
                 pathname === "/dashboard"
                   ? "text-primary font-semibold"
                   : "text-foreground/70"
@@ -115,7 +115,7 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <Button asChild>
-              <Link href="/login" className="text-lg"> {/* Changed text-base to text-lg */}
+              <Link href="/login" className="text-lg"> 
                 <LogIn className="mr-2 h-4 w-4" /> Login
               </Link>
             </Button>
