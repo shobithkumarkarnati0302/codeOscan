@@ -433,7 +433,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
                     {togglingFavoriteId === item.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <Star className={`h-4 w-4 ${item.is_favorite ? "fill-yellow-400 text-yellow-500" : "text-muted-foreground"}`} />
+                      <Star className={`h-4 w-4 ${item.is_favorite ? "text-yellow-500 fill-current" : "text-muted-foreground"}`} />
                     )}
                   </Button>
                   <Button
