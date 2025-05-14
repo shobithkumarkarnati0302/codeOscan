@@ -85,7 +85,14 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
               const newItem = payload.new as AnalysisHistoryItem;
               setHistory(prevHistory => {
                 const updatedHistory = [newItem, ...prevHistory.filter(item => item.id !== newItem.id)];
-                updatedHistory.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                updatedHistory.sort((a, b) => {
+                  const timeA = new Date(a.created_at).getTime();
+                  const timeB = new Date(b.created_at).getTime();
+                  if (isNaN(timeA) && isNaN(timeB)) return 0;
+                  if (isNaN(timeA)) return 1; // Push items with invalid dates to the end
+                  if (isNaN(timeB)) return -1;
+                  return timeB - timeA; // Sort newest first
+                });
                 return updatedHistory.slice(0, 20);
               });
               break;
@@ -93,26 +100,26 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
               const updatedItem = payload.new as AnalysisHistoryItem;
               setHistory(prevHistory => {
                 const newHistory = prevHistory.map(item => item.id === updatedItem.id ? updatedItem : item);
-                newHistory.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-                // If an update might affect the total count or order significantly, you might still want to limit.
-                // For now, assuming updates don't drastically change the list order beyond sort.
+                newHistory.sort((a,b) => {
+                  const timeA = new Date(a.created_at).getTime();
+                  const timeB = new Date(b.created_at).getTime();
+                  if (isNaN(timeA) && isNaN(timeB)) return 0;
+                  if (isNaN(timeA)) return 1;
+                  if (isNaN(timeB)) return -1;
+                  return timeB - timeA;
+                });
                 return newHistory; 
               });
               break;
             case 'DELETE':
-              // This handles deletes from other clients/sources.
-              // Deletes from this client are already handled optimistically by the delete button's action.
-              // However, we include this to ensure consistency if the optimistic update was missed or for external deletes.
               const oldItemId = (payload.old as Partial<AnalysisHistoryItem>).id;
               if (oldItemId) {
-                // Check if item is still in history (it might have been optimistically removed)
-                setHistory(prevHistory => prevHistory.find(item => item.id === oldItemId) ? prevHistory.filter(item => item.id !== oldItemId) : prevHistory);
+                setHistory(prevHistory => prevHistory.filter(item => item.id !== oldItemId));
               } else {
-                fetchHistory(); // Fallback if ID is missing
+                fetchHistory(); 
               }
               break;
             default:
-              // For other cases or if payload structure is unexpected, just refetch
               fetchHistory();
           }
         }
@@ -152,7 +159,6 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
         title: "Deletion Successful",
         description: "The analysis history item has been deleted.",
       });
-      // Optimistically update the UI by removing the item from the local state
       setHistory(prev => prev.filter(h => h.id !== itemToDelete!.id)); 
     }
     setItemToDelete(null);
