@@ -6,6 +6,7 @@ import { analyzeCodeComplexity, type AnalyzeCodeComplexityInput } from "@/ai/flo
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import type { Database } from "@/lib/database.types";
 
 export async function handleLogin(formData: FormData) {
   const email = formData.get("email") as string;
@@ -95,4 +96,68 @@ export async function analyzeAndSaveCode(formData: FormData) {
     console.error("AI analysis error:", aiError);
     return { error: "AI analysis failed: " + (aiError.message || "Unknown error"), data: null };
   }
+}
+
+export async function deleteAnalysisHistoryItem(id: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "User not authenticated." };
+  }
+
+  const { error } = await supabase
+    .from("analysis_history")
+    .delete()
+    .match({ id: id, user_id: user.id });
+
+  if (error) {
+    console.error("Database error deleting item:", error);
+    return { error: "Failed to delete history item: " + error.message };
+  }
+
+  revalidatePath("/dashboard");
+  return { error: null };
+}
+
+export async function updateAnalysisHistoryItem(id: string, formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "User not authenticated." };
+  }
+
+  const title = formData.get("title") as string;
+  const language = formData.get("language") as string;
+  const code = formData.get("code") as string;
+
+  if (!language || !code) {
+    return { error: "Language and code snippet are required." };
+  }
+  
+  // For this version, we are not re-analyzing. 
+  // We are only updating the user-editable fields.
+  // The AI-generated fields (time_complexity, space_complexity, explanation) remain unchanged.
+  // If re-analysis is desired, this function would need to call `analyzeCodeComplexity` again.
+
+  const updateData: Partial<Database["public"]["Tables"]["analysis_history"]["Row"]> = {
+    title: title || `Analysis for ${language}`,
+    language: language,
+    code_snippet: code,
+    // updated_at: new Date().toISOString(), // If you add an updated_at column
+  };
+
+  const { error } = await supabase
+    .from("analysis_history")
+    .update(updateData)
+    .match({ id: id, user_id: user.id });
+
+  if (error) {
+    console.error("Database error updating item:", error);
+    return { error: "Failed to update history item: " + error.message };
+  }
+
+  revalidatePath("/dashboard");
+  return { error: null };
 }
