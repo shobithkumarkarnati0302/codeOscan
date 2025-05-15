@@ -57,7 +57,7 @@ CodeOscan helps developers analyze code efficiency, understand algorithmic compl
 ## 📦 Installation
 
 ```bash
-git clone https://github.com/your-username/codeoscan.git
+git clone https://github.com/shobithkumarkarnati0302/codeOscan.git
 cd codeoscan
 npm install
 npm run dev
